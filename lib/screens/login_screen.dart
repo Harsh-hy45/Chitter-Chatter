@@ -4,7 +4,7 @@ import 'package:chitter_chatter/constants.dart';
 import 'package:chitter_chatter/components/rounded_button.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
-
+import 'package:edge_alert/edge_alert.dart';
 
 class LoginScreen extends StatefulWidget {
   static const String id = 'login_screen';
@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String email;
   bool showSpinner=false;
   String password;
+
 
   @override
   Widget build(BuildContext context) {
@@ -45,14 +46,18 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
                 TextField(
-
                   keyboardType: TextInputType.emailAddress,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors. white),
                   onChanged: (value) {
                   email=value;
                   },
-                  decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your email'),
+                  decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your email',
+                      prefixIcon: IconTheme(data: IconThemeData(
+                          color: Colors.white
+                      ), child: Icon(Icons.email,)
+                  ),
+                  ),
                 ),
 
               SizedBox(
@@ -65,7 +70,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 onChanged: (value) {
                 password=value;
                 },
-                decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your password'),
+                decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your password', prefixIcon: IconTheme(data: IconThemeData(
+                    color: Colors.white
+                ), child: Icon(Icons.lock,)
+                ),),
               ),
               SizedBox(
                 height: 24.0,
@@ -74,22 +82,40 @@ class _LoginScreenState extends State<LoginScreen> {
                 title: 'Log In',
                 colour: Colors.lightBlueAccent,
                 onPressed: () async{
-                  setState((){
-                    showSpinner=true;
-                  });
-                  try{
-                    final user=_auth.signInWithEmailAndPassword(email: email, password: password);
 
-                    if(user!=null){
-                      Navigator.pushNamed(context, ChatScreen.id);
-                    }
-                    setState((){
-                      showSpinner=false;
+                  if (password != null && email != null) {
+                    setState(() {
+                      showSpinner = true;
                     });
-                  }
-
-                  catch(e){
-                    print(e);
+                    try {
+                      final loggedUser =
+                      await _auth.signInWithEmailAndPassword(
+                          email: email, password: password);
+                      if (loggedUser != null) {
+                        setState(() {
+                          showSpinner = false;
+                        });
+                        Navigator.pushNamed(context,ChatScreen.id);
+                      }
+                    } catch (e) {
+                      setState(() {
+                        showSpinner = false;
+                      });
+                      EdgeAlert.show(context,
+                          title: 'Login Failed',
+                          description: e.toString(),
+                          gravity: EdgeAlert.BOTTOM,
+                          icon: Icons.error,
+                          backgroundColor: Colors.deepPurple[900]);
+                    }
+                  } else {
+                    EdgeAlert.show(context,
+                        title: 'Uh oh!',
+                        description:
+                        'Please enter the email and password.',
+                        gravity: EdgeAlert.BOTTOM,
+                        icon: Icons.error,
+                        backgroundColor: Colors.deepPurple[900]);
                   }
                 },
               ),

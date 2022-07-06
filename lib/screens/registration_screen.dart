@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:chitter_chatter/components/rounded_button.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
+import 'package:edge_alert/edge_alert.dart';
 
 class RegistrationScreen extends StatefulWidget {
   static const String id = 'registration_screen';
@@ -18,6 +19,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool showSpinner=false;
   String email;
 String password;
+String name;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,13 +46,34 @@ String password;
                 height: 48.0,
               ),
               TextField(
+               style: TextStyle(color: Colors. white),
+                textAlign: TextAlign.center,
+                onChanged: (value) {
+                  name=value;
+                },
+                decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your name',
+                  prefixIcon: IconTheme(data: IconThemeData(
+                      color: Colors.white
+                  ), child: Icon(Icons.text_format,)
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 8.0,
+              ),
+              TextField(
                 keyboardType: TextInputType.emailAddress,
                 style: TextStyle(color: Colors. white),
                 textAlign: TextAlign.center,
                 onChanged: (value) {
                   email=value;
                 },
-                decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your email'),
+                decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your email',
+                  prefixIcon: IconTheme(data: IconThemeData(
+                      color: Colors.white
+                  ), child: Icon(Icons.email,)
+                  ),
+                ),
               ),
               SizedBox(
                 height: 8.0,
@@ -62,7 +85,10 @@ String password;
                 onChanged: (value) {
                  password=value;
                 },
-                decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your password'),
+                decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your password', prefixIcon: IconTheme(data: IconThemeData(
+                    color: Colors.white
+                ), child: Icon(Icons.lock,)
+                ),),
               ),
               SizedBox(
                 height: 24.0,
@@ -71,24 +97,39 @@ String password;
                 title: 'Register',
                 colour: Colors.blueAccent,
                 onPressed: () async{
-                  setState((){
-                    showSpinner=true;
-                  });
-
-                  try {
-                    final newUser = await _auth.createUserWithEmailAndPassword(
-                        email: email, password: password);
-
-                    if(newUser!=null){
-                     Navigator.pushNamed(context, ChatScreen.id);
-                    }
-                    setState((){
-                      showSpinner=false;
+                  if (name != null && password != null && email != null) {
+                    setState(() {
+                      showSpinner = true;
                     });
-                  }
-                  catch(e)
-                  {
-                    print(e);
+                    try {
+                      final newUser =
+                      await _auth.createUserWithEmailAndPassword(
+                          email: email, password: password);
+                      if (newUser != null) {
+                        UserUpdateInfo info = UserUpdateInfo();
+                        info.displayName = name;
+                        await newUser.user.updateProfile(info);
+
+                        Navigator.pushNamed(context,ChatScreen.id);
+                      }
+                    } catch (e) {
+                      setState(() {
+                        showSpinner = false;
+                      });
+                      EdgeAlert.show(context,
+                          title: 'Signup Failed',
+                          description: e.toString(),
+                          gravity: EdgeAlert.BOTTOM,
+                          icon: Icons.error,
+                          backgroundColor: Colors.deepPurple[900]);
+                    }
+                  } else {
+                    EdgeAlert.show(context,
+                        title: 'Signup Failed',
+                        description: 'All fields are required.',
+                        gravity: EdgeAlert.BOTTOM,
+                        icon: Icons.error,
+                        backgroundColor: Colors.deepPurple[900]);
                   }
                     },
               ),

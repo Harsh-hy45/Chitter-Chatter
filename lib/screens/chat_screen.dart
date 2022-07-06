@@ -3,9 +3,13 @@ import 'package:chitter_chatter/constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:edge_alert/edge_alert.dart';
 
-final _firestore = FirebaseFirestore.instance;
-User loggedInUser;
+
+final _firestore = Firestore.instance;
+FirebaseUser loggedInUser;
+String username = 'User';
+String email = 'user@example.com';
 
 class ChatScreen extends StatefulWidget {
   static const String id = 'chat_screen';
@@ -28,12 +32,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void getCurrentUser() async {
     try {
-      final user=_auth.currentUser;
+      final user=await _auth.currentUser();
       if (user != null) {
         loggedInUser = user;
+        setState(() {
+          username = loggedInUser.displayName;
+          email = loggedInUser.email;
+        });
       }
     } catch (e) {
-      print(e);
+      EdgeAlert.show(context,
+          title: 'Something Went Wrong',
+          description: e.toString(),
+          gravity: EdgeAlert.BOTTOM,
+          icon: Icons.error,
+          backgroundColor: Colors.deepPurple[900]);
     }
   }
 
@@ -78,9 +91,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   FlatButton(
                     onPressed: () {
                       messageTextController.clear();
-                      _firestore.collection('messages').add({
+                      _firestore.collection('new_message').add({
                         'text': messageText,
-                        'sender': loggedInUser.email,
+                        'sender': username,
+                        'timestamp':DateTime.now().millisecondsSinceEpoch,
+                        'senderemail':email
                       });
                     },
                     child: Text(
@@ -102,7 +117,7 @@ class MessagesStream extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('messages').snapshots(),
+      stream: _firestore.collection('new_message').orderBy('timestamp').snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Center(
@@ -112,7 +127,7 @@ class MessagesStream extends StatelessWidget {
           );
         }
 
-        final messages = snapshot.data.docs.reversed;
+        final messages = snapshot.data.documents.reversed;
 
         List<MessageBubble> messageBubbles=[];
         for (var message in messages) {
@@ -120,7 +135,7 @@ class MessagesStream extends StatelessWidget {
 
           final messageSender = message['sender'];
 
-          final currentUser = loggedInUser.email;
+          final currentUser = loggedInUser.displayName;
 
           final messageBubble = MessageBubble(
             sender: messageSender,
@@ -177,7 +192,7 @@ class MessageBubble extends StatelessWidget {
               topRight: Radius.circular(30.0),
             ),
             elevation: 5.0,
-            color: isMe ? Colors.lightBlueAccent : Colors.white,
+            color: isMe ? Color(0xFF358066) : Colors.brown,
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
               child: Text(
@@ -194,3 +209,4 @@ class MessageBubble extends StatelessWidget {
     );
   }
 }
+
